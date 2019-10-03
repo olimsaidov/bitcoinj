@@ -539,7 +539,7 @@ public class FullPrunedBlockChain extends AbstractBlockChain {
     protected void doSetChainHead(StoredBlock chainHead) throws BlockStoreException {
         checkState(lock.isHeldByCurrentThread());
         blockStore.setVerifiedChainHead(chainHead);
-        blockStore.commitDatabaseBatchWrite();
+        // blockStore.commitDatabaseBatchWrite();
     }
 
     @Override
