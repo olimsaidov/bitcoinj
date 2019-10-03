@@ -129,6 +129,7 @@ public class FullPrunedBlockChain extends AbstractBlockChain {
     @Override
     protected void rollbackBlockStore(int height) throws BlockStoreException {
         lock.lock();
+        blockStore.beginDatabaseBatchWrite()
         try {
             int currentHeight = getBestChainHeight();
             checkArgument(height >= 0 && height <= currentHeight, "Bad height: %s", height);
@@ -146,6 +147,9 @@ public class FullPrunedBlockChain extends AbstractBlockChain {
             // Modify store directly
             // blockStore.put(newChainHead);
             this.setChainHead(newChainHead);
+        } catch (Throwable e) {
+            blockStore.abortDatabaseBatchWrite();
+            throw e;
         } finally {
             lock.unlock();
         }
