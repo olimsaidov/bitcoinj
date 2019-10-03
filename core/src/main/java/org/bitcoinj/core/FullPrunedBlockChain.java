@@ -38,6 +38,7 @@ import java.util.Set;
 import java.util.concurrent.*;
 
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * <p>A FullPrunedBlockChain works in conjunction with a {@link FullPrunedBlockStore} to verify all the rules of the
@@ -127,7 +128,27 @@ public class FullPrunedBlockChain extends AbstractBlockChain {
 
     @Override
     protected void rollbackBlockStore(int height) throws BlockStoreException {
-        throw new BlockStoreException("Unsupported");
+        lock.lock();
+        try {
+            int currentHeight = getBestChainHeight();
+            checkArgument(height >= 0 && height <= currentHeight, "Bad height: %s", height);
+            if (height == currentHeight)
+                return; // nothing to do
+
+            // Look for the block we want to be the new chain head
+            StoredBlock newChainHead = blockStore.getChainHead();
+            while (newChainHead.getHeight() > height) {
+                newChainHead = newChainHead.getPrev(blockStore);
+                if (newChainHead == null)
+                    throw new BlockStoreException("Unreachable height");
+            }
+
+            // Modify store directly
+            // blockStore.put(newChainHead);
+            this.setChainHead(newChainHead);
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override
